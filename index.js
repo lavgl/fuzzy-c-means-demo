@@ -1,14 +1,15 @@
 const random = require('lodash/random');
 const range = require('lodash/range');
 const constant = require('lodash/constant');
+const property = require('lodash/property');
 
 const {
   sqrt,
   pow
 } = Math;
 
-const M = 3;
-const m = 2;
+const CLUSTERS_NUMBER = 3;
+const FUZZINESS_COEFFICIENT = 2;
 const e = 0.01;
 
 const Point = (x, y) => ({ x, y });
@@ -29,12 +30,12 @@ const points = [
   { x: -2, y: -3 }
 ];
 
-const generatePlainU0 = (rows, columns) => {
+const generatePlainU0 = (pointsNumber, clustersNumber) => {
   let matrix = [];
+  const u = 1 / clustersNumber;
 
-  range(rows).forEach(() => {
-    const u = 1 / columns;
-    const row = range(columns).map(constant(u));
+  range(pointsNumber).forEach(() => {
+    const row = range(clustersNumber).map(constant(u));
     matrix.push(row);
   });
 
@@ -53,9 +54,31 @@ const mmap = (matrix, cb) => {
   return newMatrix;
 }
 
-const m1 = generatePlainU0(3, 3);
-const m2 = mmap(m1, x => x * 2);
+const calculateCenterDimension = (matrixU, m, clusterIndex, dimensionValues) => {
+  const numerator = dimensionValues.reduce((sum, value, i) => {
+    return sum + value * pow(matrixU[clusterIndex][i], m);
+  }, 0);
+
+  const denumerator = dimensionValues.reduce((sum, value, i) => {
+    return sum + pow(matrixU[clusterIndex][i], m);
+  }, 0);
+
+  return numerator / denumerator;
+}
+
+const calculateCenters = (matrixU, m, points) => {
+  return range(CLUSTERS_NUMBER).map(i => {
+    const [ x, y ] = ['x', 'y'].map(dimension => 
+      calculateCenterDimension(matrixU, m, i, points.map(property(dimension)))
+    );
+    
+    return { x, y };
+  });
+};
+
+const m1 = generatePlainU0(CLUSTERS_NUMBER, points.length);
+const centers = calculateCenters(m1, FUZZINESS_COEFFICIENT, points);
 
 console.log(m1);
-console.log(m2);
+console.log(centers)
 
