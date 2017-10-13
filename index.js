@@ -6,12 +6,14 @@ const sum = require('lodash/sum');
 
 const {
   sqrt,
-  pow
+  pow,
+  max,
+  abs
 } = Math;
 
 const CLUSTERS_NUMBER = 3;
 const FUZZINESS_COEFFICIENT = 2;
-const e = 0.01;
+const EPSILON = 0.01;
 
 const Point = (x, y) => ({ x, y });
 const d = (c, x) => {
@@ -46,7 +48,6 @@ const emptyMatrix = (m, n) => {
   return matrix;
 }
 
-
 const mmap = (matrix, cb) => {
   let newMatrix = [];
 
@@ -60,9 +61,14 @@ const mmap = (matrix, cb) => {
 }
 
 const mmax = (matrix) => {
-  const maxsWithinRows = matrix.map(row => Math.max.apply(null, row));
-  return Math.max.apply(null, maxsWithinRows);
+  const maxsWithinRows = matrix.map(row => max.apply(null, row));
+  return max.apply(null, maxsWithinRows);
 };
+
+const msub = (m1, m2) => mmap(m1, (elem, i, j) => elem - m2[i][j]);
+
+const last = array => array[array.length - 1];
+const llast = array => array[array.length - 2];
 
 const divide = divisor => divident => divident / divisor;
 
@@ -128,27 +134,45 @@ const calculateUMatrix = (centers, points) => {
   return matrix;
 }
 
-// const calculate = (points) => {
-//   const U0 = generatePlainU0(points.length, CLUSTERS_NUMBER);
-// }
+const appendHistory = (history, centers, U) => {
+  history.push({ centers, U });
+}
 
-const matr = [[1, 2, 3],
-              [4, 5, 2],
-              [-1, -10, 2]];
+const shouldContinue = (history, e) => {
+  if (history.length < 2) { 
+    return true;
+  }
 
-console.log('matrix', matr);
-console.log('max', mmax(matr));
+  const lastU = last(history).U;
+  const llastU = llast(history).U;
 
-// const m1 = generatePlainU0(points.length, CLUSTERS_NUMBER);
-// console.log('m1', m1);
+  const maxDiff = abs(mmax(msub(lastU, llastU)));
 
-// const c1 = calculateCenters(m1, FUZZINESS_COEFFICIENT, points);
-// console.log('c1', c1);
+  console.log('max diff', maxDiff);
 
-// const m2 = calculateUMatrix(c1, points);
-// console.log('m2', m2);
+  return maxDiff > e;
+};
 
-// const c2 = calculateCenters(m2, FUZZINESS_COEFFICIENT, points);
-// console.log('c2', c2);
+const calculate = (points) => {
+  let history = [];
+  
+  let U = generatePlainU0(points.length, CLUSTERS_NUMBER);
+  let centers = calculateCenters(U, FUZZINESS_COEFFICIENT, points);
+
+  appendHistory(history, centers, U);
+
+  while(shouldContinue(history, EPSILON)) {
+    centers = calculateCenters(U, FUZZINESS_COEFFICIENT, points);
+    U = calculateUMatrix(centers, points);
+
+    appendHistory(history, centers, U);
+  }
+
+  return history;
+}
+
+const result = calculate(points);
+
+console.log('result', result[result.length - 1]);
 
 
