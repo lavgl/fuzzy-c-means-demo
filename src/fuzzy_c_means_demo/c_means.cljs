@@ -6,19 +6,6 @@
     (Math/pow (- (first x) (first c)) 2)
     (Math/pow (- (second x) (second c)) 2))))
 
-(def points [[1 1]
-             [2 2]
-             [1 3]
-             [1 -2]
-             [1 -3]
-             [2 -3]
-             [-3 -2]
-             [-3 -3]
-             [-4 -3]
-             [-4 -2]
-             [-4 -3]
-             [-2 -3]])
-
 
 (defn- indexed [coll]
   (map-indexed vector coll))
@@ -108,9 +95,3 @@
         (recur centers
                matrix-u
                (append-history centers matrix-u history))))))
-
-(calculate {:clusters-number 4
-            :e 0.01
-            :m 2}
-           points)
-

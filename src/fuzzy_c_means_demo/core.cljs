@@ -5,8 +5,20 @@
 
 (enable-console-print!)
 
+(def points [[1 1]
+             [2 2]
+             [1 3]
+             [1 -2]
+             [1 -3]
+             [2 -3]
+             [-3 -2]
+             [-3 -3]
+             [-4 -3]
+             [-4 -2]
+             [-4 -3]
+             [-2 -3]])
 
-(defonce state (atom {:count 1}))
+(defonce state (atom {:points points}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))

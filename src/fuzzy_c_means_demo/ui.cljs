@@ -1,6 +1,35 @@
 (ns fuzzy-c-means-demo.ui
   (:require [cljs.core.async :as async]
-            [rum.core :as rum]))
+            [rum.core :as rum]
+            [cljsjs.react]
+            [cljsjs.victory]
+            [fuzzy-c-means-demo.utils :as utils]))
+
+(def VictoryChart (utils/adapt-class js/Victory.VictoryChart))
+(def VictoryScatter (utils/adapt-class js/Victory.VictoryScatter))
+(def VictoryLegend (utils/adapt-class js/Victory.VictoryLegend))
+
+(def theme js/Victory.VictoryTheme.material)
+
+(defn abs-max [coll]
+  (->> coll
+       (map Math/abs)
+       (apply max)))
+
+(rum/defc Chart [data]
+  (let [xs (map :x data)
+        ys (map :y data)
+        domain-x (abs-max xs)
+        domain-y (abs-max ys)]
+    (VictoryChart
+     {:theme theme
+      :domain {:x [(- domain-x) domain-x]
+               :y [(- domain-y) domain-y]}}
+     (VictoryScatter {:data data})
+     (VictoryLegend {:x 0
+                     :y 0
+                     :data [{:name "One" :symbol {:fill "red"}}
+                            ]}))))
 
 (rum/defc Button [label on-click]
   [:button
@@ -10,18 +39,13 @@
 (defn ->click-count [state]
   (:count state))
 
-(rum/defc Counter [click-count]
-  [:div {:style {:color "red"
-                 :font-size 32}}
-   click-count])
+(defn ->points-with-fields [data]
+  (map #(hash-map :x (first %) :y (second %)) data))
 
 (rum/defc App < rum/reactive [state-atom event-bus]
-  (println "app rendered" state-atom)
-  (let [state (rum/react state-atom)]
-    [:div
-     (Counter (->click-count state))
-     (Button "+" #(async/put! event-bus [:inc]))
-     (Button "-" #(async/put! event-bus [:dec]))]))
+  (let [state (rum/react state-atom)
+        points (:points state)]
+    (Chart (->points-with-fields points))))
 
 (defn mount [state event-bus]
   (rum/mount
