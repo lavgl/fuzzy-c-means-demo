@@ -1,17 +1,26 @@
 (ns fuzzy-c-means-demo.core
-    (:require ))
+  (:require [cljs.core.async :as async]
+            [fuzzy-c-means-demo.ui :as ui])
+  (:require-macros [fuzzy-c-means-demo.core :refer [go-loop-sub]]))
 
 (enable-console-print!)
 
-(println "This text is printed from src/fuzzy-c-means-demo/core.cljs. Go ahead and edit it and see reloading in action.")
 
-;; define your app data so that it doesn't get over-written on reload
+(defonce state (atom {:count 1}))
 
-(defonce app-state (atom {:text "Hello world!"}))
-
+(def event-bus (async/chan))
+(def event-bus-pub (async/pub event-bus first))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
+
+(go-loop-sub event-bus-pub :inc []
+             (swap! state update-in [:count] inc))
+
+(go-loop-sub event-bus-pub :dec []
+             (swap! state update-in [:count] dec))
+
+(ui/mount state event-bus)
