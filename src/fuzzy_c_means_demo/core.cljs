@@ -18,7 +18,8 @@
              [-4 -3]
              [-2 -3]])
 
-(defonce state (atom {:points points}))
+(defonce state (atom {:points points
+                      :count 1}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))

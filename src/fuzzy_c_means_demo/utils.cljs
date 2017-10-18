@@ -1,7 +1,7 @@
 (ns fuzzy-c-means-demo.utils
   (:require [sablono.util]))
 
-(defn adapt-class [react-class]
+(defn adapt-react-class [react-class]
   (fn [& args]
     (let [[opts children] (if (map? (first args))
                            [(first args) (rest args)]

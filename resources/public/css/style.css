@@ -1,2 +1,10 @@
-/* some style */
+.layout {
+    display: flex;
+    flex-direction: row;
+}
+
+.chart {
+    width: 500px;
+    height: 500px;
+}
 
