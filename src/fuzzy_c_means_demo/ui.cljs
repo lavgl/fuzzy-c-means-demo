@@ -4,7 +4,9 @@
             [cljs-react-material-ui.rum :as ui]
             [cljs-react-material-ui.core :refer [get-mui-theme]]
             [cljsjs.victory]
-            [fuzzy-c-means-demo.utils :as utils]))
+            [fuzzy-c-means-demo.utils :as utils]
+            [oops.core :refer [oget oset! ocall]]
+  ))
 
 ;; Victory bindings
 
@@ -33,18 +35,18 @@
 
 (defn- make-file-upload-handler [handler]
   (fn [e]
-    (let [file (aget e "target" "files" 0)
+    (let [file (oget e "target.files.0")
           reader (js/FileReader.)]
-      (set! (.-onloadend reader) (fn []
+      (oset! reader "onloadend" (fn []
                                    (let [result (aget reader "result")]
                                      (handler result))))
       (if (boolean file)
-        (.readAsText reader file)
+        (ocall reader "readAsText" file)
         (handler nil)))))
 
 (defn- make-text-change-handler [event-bus kw]
   (fn [e]
-    (async/put! event-bus [kw (-> e .-target .-value)])))
+    (async/put! event-bus [kw (oget e "target.value")])))
 
 ;; selectors
 
