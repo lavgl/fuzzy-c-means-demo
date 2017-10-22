@@ -23,7 +23,8 @@
 (defonce state (atom {:points points
                       :clusters-number 3
                       :fuzzyness-param 2
-                      :history nil}))
+                      :history nil
+                      :current-iteration 0}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))
@@ -56,6 +57,11 @@
                              :e 0.01
                              :m fuzzyness-param}
                            points)]
-               (swap! state assoc :history history)))
+               (swap! state assoc :history history)
+               (swap! state assoc :current-iteration 0)))
+
+(go-loop-sub event-bus-pub :select-iteration [_ value]
+             (swap! state assoc :current-iteration value))
+
 
 (ui/mount state event-bus)

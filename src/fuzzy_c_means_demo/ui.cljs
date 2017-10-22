@@ -31,7 +31,18 @@
   (hash-map
    :x (first point)
    :y (second point)
-   :label (label point)))
+   ;; :label (label point)
+   ))
+
+(defn- mark-point [point]
+  (-> point
+      (assoc :type :point)
+      (assoc :symbol "circle")))
+
+(defn- mark-center [center]
+  (-> center
+      (assoc :type :center)
+      (assoc :symbol "diamond")))
 
 (defn- make-file-upload-handler [handler]
   (fn [e]
@@ -50,10 +61,26 @@
 
 ;; selectors
 
-(defn ->prepared-points [state]
+(defn- ->prepared-points [state]
   (->> state
        :points
-       (map ->fielded-point)))
+       (map ->fielded-point)
+       (map mark-point)))
+
+(defn- slider-enabled? [state]
+  (seq (:history state)))
+
+(defn- max-slider-value [state]
+  (if (slider-enabled? state)
+    (dec (count (:history state)))))
+
+(defn- current-centers [state]
+  (let [history (:history state)
+        current-iteration (:current-iteration state)
+        centers (get-in history [current-iteration :centers])]
+    (->> centers
+         (map ->fielded-point)
+         (map mark-center))))
 
 ;; components
 
@@ -99,16 +126,29 @@
       (ui/raised-button {:label "Calculate"
                          :on-click #(async/put! event-bus [:calculate])})]]))
 
+(rum/defc ControlPanel [state event-bus]
+  [:div
+   (if (slider-enabled? state)
+     (ui/slider {:value (:current-iteration state)
+                 :step 1
+                 :max (max-slider-value state)
+                 :on-change #(async/put!
+                              event-bus
+                              [:select-iteration %2])})
+     (ui/slider {:disabled true}))])
+
 (rum/defc Layout [state event-bus]
-  (let [points (->prepared-points state)]
+  (let [points (->prepared-points state)
+        centers (current-centers state)
+        chart-data (concat points centers)]
+    (println centers)
     (ui/mui-theme-provider
      {:mui-theme (get-mui-theme)}
      [:.layout
       [:.chart-section
        [:.chart
-        (Chart points)]
-       [:.control-panel
-        "Control panel"]]
+        (Chart chart-data)]
+       (ControlPanel state event-bus)]
       (InputSection state event-bus)])))
 
 (rum/defc App < rum/reactive [state-atom event-bus]
