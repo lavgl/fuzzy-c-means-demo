@@ -2,7 +2,10 @@
   (:require [cljsjs.material-ui]
             [cljs.core.async :as async]
             [fuzzy-c-means-demo.ui :as ui]
-            [fuzzy-c-means-demo.c-means :as c-means])
+            [fuzzy-c-means-demo.c-means :as c-means]
+            [fuzzy-c-means-demo.utils :as utils]
+            [goog.Timer]
+            [goog.events])
   (:require-macros [fuzzy-c-means-demo.core :refer [go-loop-sub]]))
 
 (enable-console-print!)
@@ -24,7 +27,8 @@
                       :clusters-number 3
                       :fuzzyness-param 2
                       :history nil
-                      :current-iteration 0}))
+                      :current-iteration 0
+                      :playing? false}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))
@@ -62,6 +66,22 @@
 
 (go-loop-sub event-bus-pub :select-iteration [_ value]
              (swap! state assoc :current-iteration value))
+
+(go-loop-sub event-bus-pub :next-iteration []
+             (let [max-iter (dec (utils/iterations-count @state))
+                   current-iter (:current-iteration @state)]
+               (if (= current-iter max-iter)
+                 (swap! state assoc :current-iteration 0)
+                 (swap! state update :current-iteration inc))))
+
+(def timer (goog.Timer. 100))
+(goog.events.listen timer goog.Timer.TICK #(async/put! event-bus [:next-iteration]))
+
+(go-loop-sub event-bus-pub :toggle-playing []
+             (swap! state update :playing? not)
+             (if (:playing? @state)
+               (.start timer)
+               (.stop timer)))
 
 
 (ui/mount state event-bus)

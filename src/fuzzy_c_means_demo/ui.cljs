@@ -3,6 +3,7 @@
             [rum.core :as rum]
             [cljs-react-material-ui.rum :as ui]
             [cljs-react-material-ui.core :refer [get-mui-theme]]
+            [cljs-react-material-ui.icons :as ic]
             [cljsjs.victory]
             [fuzzy-c-means-demo.utils :as utils]
             [oops.core :refer [oget oset! ocall]]
@@ -67,12 +68,10 @@
        (map ->fielded-point)
        (map mark-point)))
 
-(defn- slider-enabled? [state]
-  (seq (:history state)))
+(def slider-enabled? utils/has-history?)
 
-(defn- max-slider-value [state]
-  (if (slider-enabled? state)
-    (dec (count (:history state)))))
+(defn max-slider-value [state]
+  (dec (utils/iterations-count state)))
 
 (defn- current-centers [state]
   (let [history (:history state)
@@ -126,22 +125,39 @@
       (ui/raised-button {:label "Calculate"
                          :on-click #(async/put! event-bus [:calculate])})]]))
 
+(rum/defc PlayButton [state event-bus]
+  (if (slider-enabled? state)
+    (let [playing? (:playing? state)]
+      (ui/icon-button {:on-click #(async/put! event-bus [:toggle-playing])}
+                      (if playing?
+                        (ic/av-pause)
+                        (ic/av-play-arrow))))
+    (ui/icon-button
+     {:disabled true}
+     (ic/av-play-arrow))))
+
+
+(rum/defc Slider [state event-bus]
+  (if (slider-enabled? state)
+    (ui/slider {:value (:current-iteration state)
+                :step 1
+                :max (max-slider-value state)
+                :on-change #(async/put!
+                             event-bus
+                             [:select-iteration %2])})
+    (ui/slider {:disabled true})))
+
 (rum/defc ControlPanel [state event-bus]
-  [:div
-   (if (slider-enabled? state)
-     (ui/slider {:value (:current-iteration state)
-                 :step 1
-                 :max (max-slider-value state)
-                 :on-change #(async/put!
-                              event-bus
-                              [:select-iteration %2])})
-     (ui/slider {:disabled true}))])
+  [:.control-panel
+   [:.slider
+    (Slider state event-bus)]
+   [:div
+    (PlayButton state event-bus)]])
 
 (rum/defc Layout [state event-bus]
   (let [points (->prepared-points state)
         centers (current-centers state)
         chart-data (concat points centers)]
-    (println centers)
     (ui/mui-theme-provider
      {:mui-theme (get-mui-theme)}
      [:.layout

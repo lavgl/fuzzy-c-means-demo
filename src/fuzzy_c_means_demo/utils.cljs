@@ -13,3 +13,11 @@
         (apply js/React.createElement react-class
                (clj->js (sablono.util/html-to-dom-attrs opts)) new-children)))))
 
+
+(defn has-history? [state]
+  (seq (:history state)))
+
+(defn iterations-count [state]
+  (if (has-history? state)
+    (count (:history state))
+    1))
