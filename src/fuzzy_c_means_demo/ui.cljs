@@ -1,7 +1,8 @@
 (ns fuzzy-c-means-demo.ui
   (:require [cljs.core.async :as async]
             [rum.core :as rum]
-            [cljsjs.react]
+            [cljs-react-material-ui.rum :as ui]
+            [cljs-react-material-ui.core :refer [get-mui-theme]]
             [cljsjs.victory]
             [fuzzy-c-means-demo.utils :as utils]))
 
@@ -30,6 +31,21 @@
    :y (second point)
    :label (label point)))
 
+(defn- make-file-upload-handler [handler]
+  (fn [e]
+    (let [file (aget e "target" "files" 0)
+          reader (js/FileReader.)]
+      (set! (.-onloadend reader) (fn []
+                                   (let [result (aget reader "result")]
+                                     (handler result))))
+      (if (boolean file)
+        (.readAsText reader file)
+        (handler nil)))))
+
+(defn- make-text-change-handler [event-bus kw]
+  (fn [e]
+    (async/put! event-bus [kw (-> e .-target .-value)])))
+
 ;; selectors
 
 (defn ->prepared-points [state]
@@ -51,35 +67,47 @@
      (VictoryScatter {:data points
                       :label-component (VictoryTooltip)}))))
 
-(rum/defc Button [props label]
-  [:button
-   props
-   label])
-
-(rum/defc Input [props]
-  [:div {:style {:margin 5}}
-   [:label (:label props)]
-   [:input props]])
-
-(rum/defc InputSection []
-  [:.input-section
-   (Input {:label "Load file with points"
-           :type "file"})
-   (Input {:label "Fuzzyness parameter (m):"
-           :type "text"})
-   (Input {:label "Clusters number:"
-           :type "text"})
-   (Button {} "Calculate")])
+(rum/defc InputSection [state event-bus]
+  (let [clusters-number (:clusters-number state)
+        fuzzyness-param (:fuzzyness-param state)]
+    [:.input-section
+     [:div
+      (ui/text-field {:floating-label-text "Clusters number"
+                      :type "number"
+                      :default-value clusters-number
+                      :on-change (make-text-change-handler
+                                  event-bus
+                                  :change-clusters-number)})]
+     [:div
+      (ui/text-field {:floating-label-text "Fuzzyness parameter (m):"
+                      :type "number"
+                      :step 0.01
+                      :default-value fuzzyness-param
+                      :on-change (make-text-change-handler
+                                  event-bus
+                                  :change-fuzzyness-param)})]
+     [:.file-input-block
+      [:div
+       [:label "Points file"]]
+      [:.file-input
+       [:input {:type "file"
+                :on-change (make-file-upload-handler
+                            #(async/put! event-bus [:file-uploaded %]))}]]]
+     [:.submit-button
+      (ui/raised-button {:label "Calculate"
+                         :on-click #(async/put! event-bus [:calculate])})]]))
 
 (rum/defc Layout [state event-bus]
   (let [points (->prepared-points state)]
-    [:.layout
-     [:.chart-section
-      [:.chart
-       (Chart points)]
-      [:.control-panel
-       "Control panel"]]
-     (InputSection)]))
+    (ui/mui-theme-provider
+     {:mui-theme (get-mui-theme)}
+     [:.layout
+      [:.chart-section
+       [:.chart
+        (Chart points)]
+       [:.control-panel
+        "Control panel"]]
+      (InputSection state event-bus)])))
 
 (rum/defc App < rum/reactive [state-atom event-bus]
   (let [state (rum/react state-atom)]

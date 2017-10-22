@@ -1,6 +1,8 @@
 (ns fuzzy-c-means-demo.core
-  (:require [cljs.core.async :as async]
-            [fuzzy-c-means-demo.ui :as ui])
+  (:require [cljsjs.material-ui]
+            [cljs.core.async :as async]
+            [fuzzy-c-means-demo.ui :as ui]
+            [fuzzy-c-means-demo.c-means :as c-means])
   (:require-macros [fuzzy-c-means-demo.core :refer [go-loop-sub]]))
 
 (enable-console-print!)
@@ -19,7 +21,9 @@
              [-2 -3]])
 
 (defonce state (atom {:points points
-                      :count 1}))
+                      :clusters-number 3
+                      :fuzzyness-param 2
+                      :history nil}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))
@@ -30,10 +34,28 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(go-loop-sub event-bus-pub :inc []
-             (swap! state update-in [:count] inc))
+(go-loop-sub event-bus-pub :change-clusters-number [_ value]
+             (swap! state assoc :clusters-number value))
 
-(go-loop-sub event-bus-pub :dec []
-             (swap! state update-in [:count] dec))
+(go-loop-sub event-bus-pub :change-fuzzyness-param [_ value]
+             (swap! state assoc :fuzzyness-param value))
+
+; maybe try spec for file validation
+(go-loop-sub event-bus-pub :file-uploaded [_ content]
+             (let [points (cljs.reader/read-string content)]
+               (if (vector? points)
+                 (swap! state assoc :points points)
+                 (js/alert "Please, load file with correct points!"))))
+
+(go-loop-sub event-bus-pub :calculate []
+             (let [clusters-number (-> @state :clusters-number js/parseInt)
+                   fuzzyness-param (-> @state :fuzzyness-param js/parseFloat)
+                   points (:points @state)
+                   history (c-means/calculate
+                            {:clusters-number clusters-number
+                             :e 0.01
+                             :m fuzzyness-param}
+                           points)]
+               (swap! state assoc :history history)))
 
 (ui/mount state event-bus)

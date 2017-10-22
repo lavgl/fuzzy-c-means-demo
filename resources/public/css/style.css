@@ -8,3 +8,10 @@
     height: 500px;
 }
 
+.file-input-block, .submit-button {
+    margin-top: 25px;
+}
+
+.file-input {
+    margin-top: 5px;
+}

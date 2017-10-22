@@ -9,8 +9,15 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/clojurescript "1.9.908"]
                  [org.clojure/core.async  "0.3.443"]
-                 [rum "0.10.8"]
-                 [cljsjs/victory "0.17.0-0"]]
+                 [binaryage/oops "0.5.6"]
+                 [cljsjs/react "15.6.2-0"]
+                 [cljsjs/react-dom "15.6.2-0"]
+                 [rum "0.10.8" :exclusions [cljsjs/react
+                                            cljsjs/react-dom]]
+                 [cljsjs/victory "0.17.0-0"]
+                 [cljs-react-material-ui "0.2.48" :exclusions [cljsjs/react
+                                                               cljsjs/react-dom
+                                                               sablono]]]
 
   :plugins [[lein-figwheel "0.5.13"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
