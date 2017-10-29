@@ -25,6 +25,12 @@
        (map Math/abs)
        (apply max)))
 
+(defn- domain [xs]
+  (let [max* (abs-max xs)]
+    (if (= max* 0)
+      3
+      max*)))
+
 (defn- label [[x y]]
   (str "x: " x "\ny: " y))
 
@@ -63,7 +69,10 @@
                            (conj elem (= (second elem) max-u))) indexed-point-u)
           max-u-vec (first (filter #(identity (nth % 2)) with-max?))
           max-index (first max-u-vec)
-          center-color (nth colors max-index)]
+          center-color (nth colors (do 
+            (println "max index" max-index (type max-index))
+            max-index
+          ))]
     (assoc point :color center-color))))
 
 (defn- make-file-upload-handler [handler]
@@ -84,12 +93,15 @@
 ;; selectors
 
 (defn- ->prepared-points [state]
-  (let [mark-color (make-mark-point-color state)]
-    (->> state
-          :points
-          (map ->fielded-point)
-          (map mark-point)
-          (map-indexed mark-color))))
+  (let [mark-color (make-mark-point-color state)
+        has-history? (utils/has-history? state)]
+    (as-> state s
+          (:points s)
+          (map ->fielded-point s)
+          (map mark-point s)
+          (if has-history? 
+            (map-indexed mark-color s)
+            (map identity s)))))
 
 (def slider-enabled? utils/has-history?)
 
@@ -111,8 +123,8 @@
 (rum/defc Chart [points]
   (let [xs (map :x points)
         ys (map :y points)
-        domain-x (abs-max xs)
-        domain-y (abs-max ys)]
+        domain-x (domain xs)
+        domain-y (domain ys)]
     (VictoryChart
      {:theme theme
       :domain {:x [(- domain-x) domain-x]
