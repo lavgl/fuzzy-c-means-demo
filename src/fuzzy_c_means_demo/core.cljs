@@ -28,7 +28,8 @@
                       :fuzzyness-param 2
                       :history nil
                       :current-iteration 0
-                      :playing? false}))
+                      :playing? false
+                      :colors nil}))
 
 (def event-bus (async/chan))
 (def event-bus-pub (async/pub event-bus first))
@@ -56,13 +57,16 @@
              (let [clusters-number (-> @state :clusters-number js/parseInt)
                    fuzzyness-param (-> @state :fuzzyness-param js/parseFloat)
                    points (:points @state)
+                   colors (utils/generate-n-colors clusters-number)
                    history (c-means/calculate
                             {:clusters-number clusters-number
                              :e 0.01
                              :m fuzzyness-param}
                            points)]
                (swap! state assoc :history history)
-               (swap! state assoc :current-iteration 0)))
+               (swap! state assoc :current-iteration 0)
+               (swap! state assoc :colors colors)
+               ))
 
 (go-loop-sub event-bus-pub :select-iteration [_ value]
              (swap! state assoc :current-iteration value))

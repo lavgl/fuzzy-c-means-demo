@@ -45,6 +45,27 @@
       (assoc :type :center)
       (assoc :symbol "diamond")))
 
+(defn- make-mark-center-color [state]
+  (fn [index center]
+    (let [color (get-in state [:colors index])]
+      (assoc center :color color))))
+
+(defn- make-mark-point-color [state]
+  (fn [index point]
+    (let [history (:history state)
+          iter (:current-iteration state)
+          colors (:colors state)
+          u (get-in history [iter :u])
+          point-u (get u index)
+          max-u (apply max point-u)
+          indexed-point-u (map-indexed vector point-u)
+          with-max? (map (fn [elem]
+                           (conj elem (= (second elem) max-u))) indexed-point-u)
+          max-u-vec (first (filter #(identity (nth % 2)) with-max?))
+          max-index (first max-u-vec)
+          center-color (nth colors max-index)]
+    (assoc point :color center-color))))
+
 (defn- make-file-upload-handler [handler]
   (fn [e]
     (let [file (oget e "target.files.0")
@@ -63,23 +84,27 @@
 ;; selectors
 
 (defn- ->prepared-points [state]
-  (->> state
-       :points
-       (map ->fielded-point)
-       (map mark-point)))
+  (let [mark-color (make-mark-point-color state)]
+    (->> state
+          :points
+          (map ->fielded-point)
+          (map mark-point)
+          (map-indexed mark-color))))
 
 (def slider-enabled? utils/has-history?)
 
-(defn max-slider-value [state]
+(defn- max-slider-value [state]
   (dec (utils/iterations-count state)))
 
 (defn- current-centers [state]
   (let [history (:history state)
         current-iteration (:current-iteration state)
-        centers (get-in history [current-iteration :centers])]
+        centers (get-in history [current-iteration :centers])
+        mark-color (make-mark-center-color state)]
     (->> centers
          (map ->fielded-point)
-         (map mark-center))))
+         (map mark-center)
+         (map-indexed mark-color))))
 
 ;; components
 
@@ -93,6 +118,7 @@
       :domain {:x [(- domain-x) domain-x]
                :y [(- domain-y) domain-y]}}
      (VictoryScatter {:data points
+                      :style {:data {:fill #(oget % "?color")}}
                       :label-component (VictoryTooltip)}))))
 
 (rum/defc InputSection [state event-bus]

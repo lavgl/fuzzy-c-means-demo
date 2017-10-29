@@ -21,3 +21,10 @@
   (if (has-history? state)
     (count (:history state))
     1))
+
+(defn generate-n-colors [n]
+  (let [angle (/ 360 n)
+        rotate #(+ % angle)
+        angles (iterate rotate 0)
+        colors (map #(str "hsl(" % ",100%,50%)") angles)]
+    (vec (take n colors))))
