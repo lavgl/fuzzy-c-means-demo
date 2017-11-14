@@ -192,6 +192,18 @@
    [:div
     (PlayButton state event-bus)]])
 
+(rum/defc Header []
+  [:div
+   (ui/icon-button
+    {:on-click #(js/alert utils/help-text)
+     :title "Інформація про програму"}
+    (ic/action-help-outline))
+   [:a {:href "info.pdf"
+        :target "_blank"
+        :title "Інформація про алгоритм Fuzzy C-Means"}
+    (ui/icon-button
+     (ic/action-help))]])
+
 (rum/defc Layout [state event-bus]
   (let [points (->prepared-points state)
         centers (current-centers state)
@@ -199,11 +211,14 @@
     (ui/mui-theme-provider
      {:mui-theme (get-mui-theme)}
      [:.layout
-      [:.chart-section
-       [:.chart
-        (Chart chart-data)]
-       (ControlPanel state event-bus)]
-      (InputSection state event-bus)])))
+      [:.header-section
+       (Header)]
+      [:.body-section
+       [:.chart-section
+        [:.chart
+         (Chart chart-data)]
+        (ControlPanel state event-bus)]
+       (InputSection state event-bus)]])))
 
 (rum/defc App < rum/reactive [state-atom event-bus]
   (let [state (rum/react state-atom)]

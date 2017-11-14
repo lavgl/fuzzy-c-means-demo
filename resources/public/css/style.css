@@ -1,5 +1,15 @@
 .layout {
     display: flex;
+    flex-direction: column;
+}
+
+.header-section {
+    padding-left: 250px;
+    margin-bottom: -50px;
+}
+
+.body-section {
+    display: flex;
     flex-direction: row;
 }
 
